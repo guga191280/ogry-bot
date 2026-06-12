@@ -74,6 +74,7 @@ def decrypt_crypt5(happ_link):
             print(f"Ошибка сервера Render: {response.status_code}")
             return None
     except Exception as e:
+        print(f"❌ ОШИБКА ЮЗЕРБОТА: {e}", flush=True)
         print(f"❌ ОШИБКА В СКРИПТЕ: {e}", flush=True)
         print(f"Ошибка подключения к Render: {e}")
         return None
@@ -86,6 +87,7 @@ def encrypt_happ_link(url: str):
         cipher = PKCS1_v1_5.new(public_key)
         return base64.b64encode(cipher.encrypt(mixed_url.encode('utf-8'))).decode('utf-8')
     except Exception as e:
+        print(f"❌ ОШИБКА ЮЗЕРБОТА: {e}", flush=True)
         print(f"❌ ОШИБКА В СКРИПТЕ: {e}", flush=True)
         print(f"Encrypt Error: {e}")
         return None
@@ -146,6 +148,7 @@ async def handler(event):
             print(f"✅ Gönderildi → {target}")
             await client.send_message(LOG_CHANNEL, f"✅ {target} kanalına gönderildi")
         except Exception as e:
+        print(f"❌ ОШИБКА ЮЗЕРБОТА: {e}", flush=True)
         print(f"❌ ОШИБКА В СКРИПТЕ: {e}", flush=True)
             await client.send_message(LOG_CHANNEL, f"❌ Hata ({target}): {e}")
 
