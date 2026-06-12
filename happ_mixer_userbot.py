@@ -74,8 +74,6 @@ def decrypt_crypt5(happ_link):
             print(f"Ошибка сервера Render: {response.status_code}")
             return None
     except Exception as e:
-        print(f"❌ ОШИБКА ЮЗЕРБОТА: {e}", flush=True)
-        print(f"❌ ОШИБКА В СКРИПТЕ: {e}", flush=True)
         print(f"Ошибка подключения к Render: {e}")
         return None
 
@@ -87,8 +85,6 @@ def encrypt_happ_link(url: str):
         cipher = PKCS1_v1_5.new(public_key)
         return base64.b64encode(cipher.encrypt(mixed_url.encode('utf-8'))).decode('utf-8')
     except Exception as e:
-        print(f"❌ ОШИБКА ЮЗЕРБОТА: {e}", flush=True)
-        print(f"❌ ОШИБКА В СКРИПТЕ: {e}", flush=True)
         print(f"Encrypt Error: {e}")
         return None
 
@@ -97,7 +93,6 @@ def encrypt_happ_link(url: str):
 client = TelegramClient('happ_mixer_session', api_id, api_hash)
 
 @client.on(events.NewMessage(chats=source_channels))
-print("📩 Получено новое событие в Telegram!", flush=True)
 async def handler(event):
     global last_proxy
     text = event.message.text or ""
@@ -148,11 +143,8 @@ async def handler(event):
             print(f"✅ Gönderildi → {target}")
             await client.send_message(LOG_CHANNEL, f"✅ {target} kanalına gönderildi")
         except Exception as e:
-        print(f"❌ ОШИБКА ЮЗЕРБОТА: {e}", flush=True)
-        print(f"❌ ОШИБКА В СКРИПТЕ: {e}", flush=True)
             await client.send_message(LOG_CHANNEL, f"❌ Hata ({target}): {e}")
 
-print("📩 Получено новое событие в Telegram!", flush=True)
 async def ping_render():
     while True:
         try:
@@ -162,7 +154,6 @@ async def ping_render():
             pass
         await asyncio.sleep(300)
 
-print("📩 Получено новое событие в Telegram!", flush=True)
 async def main():
     await client.start()
     print("🚀 Happ Mixer Userbot (crypt5→crypt4) ÇALIŞIYOR...")
