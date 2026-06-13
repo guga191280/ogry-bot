@@ -83,7 +83,7 @@ def encrypt_happ_link(url: str):
         cipher = PKCS1_v1_5.new(public_key)
         return base64.b64encode(cipher.encrypt(mixed_url.encode('utf-8'))).decode('utf-8')
     except Exception as e:
-        print(f"Encrypt Error: {e}")
+        print(f"❌ КРИТИЧЕСКАЯ ОШИБКА ШИФРОВАНИЯ RSA: {e}", flush=True)
         return None
 
 # ====================== TELEGRAM ======================
