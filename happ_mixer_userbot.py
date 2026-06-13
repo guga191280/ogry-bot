@@ -20,7 +20,7 @@ LOG_CHANNEL = '@alexanderlogger'
 
 DECRYPT_BINARY = './linux-x64_x86'  # binary yolu
 
-MIX_MACROS = "https://script.google.com/macros/s/AKfycby6bSt2cNMil43ZIv0sHwXUnEHfMqN2hbjGETfPG1m_iwjkO_ih_yp6pXt-NVc48_6w/exec?url=https://mix-macros.alexanderoff.ru/mixed/@vpnruss1/?url="
+MIX_MACROS = "https://mix-macros.alexanderoff.ru/mixed/@vpnruss1/?url="
 
 last_proxy = "https://t.me/proxy?server=tproxy.mom&port=8090&secret=ee104462821249bd7ac519130220c25d09617669746f2e7275"
 
