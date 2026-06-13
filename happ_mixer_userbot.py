@@ -63,18 +63,16 @@ def extract_proxy(text):
     return match.group(1) if match else None
 
 def decrypt_crypt5(happ_link):
-    """Отправляет crypt5 ссылку на удаленный сервер Render для дешифрации"""
+    """Локальная дешифрация через бинарник"""
     try:
-        url = "https://happ-decrypt-server-ogry.onrender.com/decrypt"
-        response = requests.post(url, json={"text": happ_link}, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("decrypted")
-        else:
-            print(f"Ошибка сервера Render: {response.status_code}")
-            return None
+        import subprocess
+        result = subprocess.run([DECRYPT_BINARY, happ_link], capture_output=True, text=True, timeout=10)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+        print(f"❌ Ошибка бинарника: {result.stderr.strip()}")
+        return None
     except Exception as e:
-        print(f"Ошибка подключения к Render: {e}")
+        print(f"❌ Не удалось запустить локальный бинарник: {e}")
         return None
 
 def encrypt_happ_link(url: str):
