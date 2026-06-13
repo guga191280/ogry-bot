@@ -17,7 +17,6 @@ source_channels = ['@Happ_VPN_official', '@aboutmyselfalex']
 target_channels = ['@vpnruss1']
 
 DECRYPT_BINARY = './linux-x64_x86'
-MIX_MACROS = "https://mix-macros.alexanderoff.ru/mixed/@vpnruss1/?url="
 last_proxy = "https://t.me/proxy?server=tproxy.mom&port=8090&secret=ee104462821249bd7ac519130220c25d09617669746f2e7275"
 
 PUBLIC_KEYS = {
@@ -81,23 +80,25 @@ def encrypt_happ_link(url: str):
         else:
             pure_url = url
 
-        mixed_url = f"{MIX_MACROS}{pure_url}"
-        print(f"🔗 Ссылка перед зажатием в RSA: {mixed_url}", flush=True)
+        # Шифруем чистый оригинальный URL подписки напрямую, без макросов
+        pure_url = pure_url.strip()
+        print(f"🔗 Шифруем оригинальный URL напрямую: {pure_url}", flush=True)
         
         public_key = RSA.import_key(PUBLIC_KEYS["happ://crypt4/"])
         cipher = PKCS1_v1_5.new(public_key)
         
-        encrypted_bytes = cipher.encrypt(mixed_url.encode('utf-8'))
+        encrypted_bytes = cipher.encrypt(pure_url.encode('utf-8'))
         return base64.b64encode(encrypted_bytes).decode('utf-8')
     except Exception as e:
         print(f"❌ КРИТИЧЕСКАЯ ОШИБКА RSA ШИФРОВАНИЯ: {e}", flush=True)
         try:
-            return base64.b64encode(mixed_url.encode('utf-8')).decode('utf-8')
+            return base64.b64encode(pure_url.encode('utf-8')).decode('utf-8')
         except:
             return None
 
 client = TelegramClient('happ_mixer_session', api_id, api_hash)
 
+@client.on(events.NewMessage(chats=source_channels))
 async def handler(event):
     global last_proxy
     text = event.message.text or ""
@@ -105,29 +106,29 @@ async def handler(event):
     proxy = extract_proxy(text)
     if proxy:
         last_proxy = proxy
-        print(f"📡 Найдена прокси: {proxy}")
+        print(f"📡 Найдена прокси: {proxy}", flush=True)
 
     if 'happ://crypt5/' not in text:
         return
 
-    print("🔍 Обнаружен crypt5 код!")
+    print("🔍 Обнаружен crypt5 код!", flush=True)
     match = re.search(r'(happ://crypt5/[A-Za-z0-9+/=]+)', text)
     if not match:
-        print("❌ Не удалось извлечь ссылку регуляркой.")
+        print("❌ Не удалось извлечь ссылку регуляркой.", flush=True)
         return
 
     happ_link = match.group(1)
     decrypted_url = decrypt_crypt5(happ_link)
 
     if not decrypted_url:
-        print("❌ Дешифрация вернула пустой результат.")
+        print("❌ Дешифрация вернула пустой результат.", flush=True)
         return
 
-    print(f"🔓 Успешная дешифрация!")
+    print(f"🔓 Успешная дешифрация!", flush=True)
     encrypted_code = encrypt_happ_link(decrypted_url)
     
     if not encrypted_code:
-        print("❌ Не удалось закодировать в crypt4.")
+        print("❌ Не удалось закодировать в crypt4.", flush=True)
         return
 
     final_message = TEMPLATE.format(encrypted_code=encrypted_code, proxy=last_proxy)
@@ -138,8 +139,6 @@ async def handler(event):
             print(f"✅ Gönderildi → {target}", flush=True)
         except Exception as e:
             print(f"❌ Hata ({target}): {e}", flush=True)
-
-
 
 async def main():
     await client.start()
