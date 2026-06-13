@@ -2,7 +2,6 @@ import asyncio
 import re
 import base64
 import subprocess
-import requests
 from telethon import TelegramClient, events
 import logging
 from Crypto.PublicKey import RSA
@@ -58,21 +57,12 @@ def decrypt_crypt5(happ_link):
         result = subprocess.run([DECRYPT_BINARY, happ_link], capture_output=True, text=True, timeout=10)
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-        print(f"❌ Ошибка бинарника: {result.stderr.strip()}", flush=True)
         return None
-    except Exception as e:
-        print(f"❌ Не удалось запустить локальный бинарник: {e}", flush=True)
+    except:
         return None
 
 def encrypt_happ_link(url: str):
     try:
-        if "Result" in url:
-            lines = url.split("\n")
-            for line in lines:
-                if "https://" in line or "http://" in line:
-                    url = line.strip()
-                    break
-
         if "url=" in url:
             from urllib.parse import unquote
             pure_url = url.split("url=")[-1]
@@ -80,21 +70,21 @@ def encrypt_happ_link(url: str):
         else:
             pure_url = url
 
-        # Шифруем чистый оригинальный URL подписки напрямую, без макросов
-        pure_url = pure_url.strip()
-        print(f"🔗 Шифруем оригинальный URL напрямую: {pure_url}", flush=True)
+        # Сжимаем строку для RSA, убирая протоколы
+        pure_url = pure_url.replace("http://", "").replace("https://", "").strip()
+        
+        # Собираем линк через макрос прослойку
+        mixed_url = f"https://mix-macros.alexanderoff.ru/mixed/@vpnruss1/?url=http://{pure_url}"
+        print(f"🔗 Сжатие под RSA выполнено. Макрос: {mixed_url}", flush=True)
         
         public_key = RSA.import_key(PUBLIC_KEYS["happ://crypt4/"])
         cipher = PKCS1_v1_5.new(public_key)
         
-        encrypted_bytes = cipher.encrypt(pure_url.encode('utf-8'))
+        encrypted_bytes = cipher.encrypt(mixed_url.encode('utf-8'))
         return base64.b64encode(encrypted_bytes).decode('utf-8')
     except Exception as e:
-        print(f"❌ КРИТИЧЕСКАЯ ОШИБКА RSA ШИФРОВАНИЯ: {e}", flush=True)
-        try:
-            return base64.b64encode(pure_url.encode('utf-8')).decode('utf-8')
-        except:
-            return None
+        print(f"❌ Ошибка шифрования: {e}", flush=True)
+        return None
 
 client = TelegramClient('happ_mixer_session', api_id, api_hash)
 
@@ -113,32 +103,26 @@ async def handler(event):
 
     print("🔍 Обнаружен crypt5 код!", flush=True)
     match = re.search(r'(happ://crypt5/[A-Za-z0-9+/=]+)', text)
-    if not match:
-        print("❌ Не удалось извлечь ссылку регуляркой.", flush=True)
-        return
+    if not match: return
 
     happ_link = match.group(1)
     decrypted_url = decrypt_crypt5(happ_link)
 
-    if not decrypted_url:
-        print("❌ Дешифрация вернула пустой результат.", flush=True)
-        return
+    if not decrypted_url: return
 
     print(f"🔓 Успешная дешифрация!", flush=True)
     encrypted_code = encrypt_happ_link(decrypted_url)
     
-    if not encrypted_code:
-        print("❌ Не удалось закодировать в crypt4.", flush=True)
-        return
+    if not encrypted_code: return
 
     final_message = TEMPLATE.format(encrypted_code=encrypted_code, proxy=last_proxy)
     
     for target in target_channels:
         try:
             await client.send_message(target, final_message)
-            print(f"✅ Gönderildi → {target}", flush=True)
+            print(f"✅ Успешно отправлено в канал → {target}", flush=True)
         except Exception as e:
-            print(f"❌ Hata ({target}): {e}", flush=True)
+            print(f"❌ Ошибка отправки в {target}: {e}", flush=True)
 
 async def main():
     await client.start()
