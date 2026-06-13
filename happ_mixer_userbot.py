@@ -141,5 +141,10 @@ async def handler(event):
 
 
 
+async def main():
+    await client.start()
+    print("🚀 Happ Mixer Userbot запущен и слушает каналы...", flush=True)
+    await client.run_until_disconnected()
+
 if __name__ == "__main__":
     asyncio.run(main())
