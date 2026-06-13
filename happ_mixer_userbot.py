@@ -10,35 +10,16 @@ from Crypto.Cipher import PKCS1_v1_5
 
 logging.basicConfig(level=logging.INFO)
 
-# ================== AYARLAR ==================
 api_id = 26296032
 api_hash = 'daff7fd01e17fb6ac5cfe241441475d7'
 
 source_channels = ['@Happ_VPN_official', '@aboutmyselfalex']
 target_channels = ['@vpnruss1']
-LOG_CHANNEL = '@alexanderlogger'
 
-DECRYPT_BINARY = './linux-x64_x86'  # binary yolu
-
+DECRYPT_BINARY = './linux-x64_x86'
 MIX_MACROS = "https://mix-macros.alexanderoff.ru/mixed/@vpnruss1/?url="
-
 last_proxy = "https://t.me/proxy?server=tproxy.mom&port=8090&secret=ee104462821249bd7ac519130220c25d09617669746f2e7275"
 
-# ====================== TEMPLATE ======================
-TEMPLATE = (
-    "Happ VPN Поставьте Лайкусики❤️ 🏷Купить ВПН: @digitalservvicebot\n"
-    "Внизу стоит бесплатный ключ для приложения HAPP 😎\n\n"
-    "```\n"
-    "happ://crypt4/{encrypted_code}\n"
-    "```\n\n"
-    "✈️ Телеграм прокси ✅\n"
-    "{proxy}\n\n"
-    "➡️ Купить в Боте: @digitalservvicebot🤖\n"
-    "Используйте только последние ключи на канале 😎\n"
-    "Каждые +500 ❤️ +24 часов работы!"
-)
-
-# ====================== RSA KEYS (crypt4 encrypt için) ======================
 PUBLIC_KEYS = {
     "happ://crypt4/": """-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA3UZ0M3L4K+WjM3vkbQnz
@@ -56,111 +37,109 @@ oh/uZMozC65SmDw+N5p6Su8CAwEAAQ==
 -----END PUBLIC KEY-----"""
 }
 
-# ====================== FONKSİYONLAR ======================
+TEMPLATE = (
+    "Happ VPN Поставьте Лайкусики❤️ 🏷Купить ВПН: @digitalservvicebot\n"
+    "Внизу стоит бесплатный ключ для приложения HAPP 😎\n\n"
+    "```\n"
+    "happ://crypt4/{encrypted_code}\n"
+    "```\n\n"
+    "✈️ Телеграм прокси ✅\n"
+    "{proxy}\n\n"
+    "➡️ Купить в Боте: @digitalservvicebot🤖\n"
+    "Используйте только последние ключи на канале 😎\n"
+    "Каждые +500 ❤️ +24 часов работы!"
+)
 
 def extract_proxy(text):
     match = re.search(r'(https?://t\.me/proxy\?[^ \n]+)', text)
     return match.group(1) if match else None
 
 def decrypt_crypt5(happ_link):
-    """Локальная дешифрация через бинарник"""
     try:
-        import subprocess
         result = subprocess.run([DECRYPT_BINARY, happ_link], capture_output=True, text=True, timeout=10)
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-        print(f"❌ Ошибка бинарника: {result.stderr.strip()}")
+        print(f"❌ Ошибка бинарника: {result.stderr.strip()}", flush=True)
         return None
     except Exception as e:
-        print(f"❌ Не удалось запустить локальный бинарник: {e}")
+        print(f"❌ Не удалось запустить локальный бинарник: {e}", flush=True)
         return None
 
 def encrypt_happ_link(url: str):
-    """URL'yi MIX_MACROS üzerinden crypt4 olarak encrypt eder"""
     try:
-        mixed_url = MIX_MACROS + requests.utils.quote(url)
+        if "Result" in url:
+            lines = url.split("\n")
+            for line in lines:
+                if "https://" in line or "http://" in line:
+                    url = line.strip()
+                    break
+
+        if "url=" in url:
+            from urllib.parse import unquote
+            pure_url = url.split("url=")[-1]
+            pure_url = unquote(pure_url)
+        else:
+            pure_url = url
+
+        mixed_url = f"{MIX_MACROS}{pure_url}"
+        print(f"🔗 Ссылка перед зажатием в RSA: {mixed_url}", flush=True)
+        
         public_key = RSA.import_key(PUBLIC_KEYS["happ://crypt4/"])
         cipher = PKCS1_v1_5.new(public_key)
-        return base64.b64encode(cipher.encrypt(mixed_url.encode('utf-8'))).decode('utf-8')
+        
+        encrypted_bytes = cipher.encrypt(mixed_url.encode('utf-8'))
+        return base64.b64encode(encrypted_bytes).decode('utf-8')
     except Exception as e:
-        print(f"❌ КРИТИЧЕСКАЯ ОШИБКА ШИФРОВАНИЯ RSA: {e}", flush=True)
-        return None
-
-# ====================== TELEGRAM ======================
+        print(f"❌ КРИТИЧЕСКАЯ ОШИБКА RSA ШИФРОВАНИЯ: {e}", flush=True)
+        try:
+            return base64.b64encode(mixed_url.encode('utf-8')).decode('utf-8')
+        except:
+            return None
 
 client = TelegramClient('happ_mixer_session', api_id, api_hash)
 
-@client.on(events.NewMessage(chats=source_channels))
 async def handler(event):
     global last_proxy
     text = event.message.text or ""
 
-    # Proxy Yakalama
     proxy = extract_proxy(text)
     if proxy:
         last_proxy = proxy
-        print(f"📡 Yeni Proxy Bulundu!")
-        try:
-            await client.send_message(LOG_CHANNEL, f"📡 Yeni Proxy Güncellendi:\n{proxy}")
-        except:
-            pass
+        print(f"📡 Найдена прокси: {proxy}")
 
-    # crypt5 Kodu Yakalama
     if 'happ://crypt5/' not in text:
         return
 
-    print("🔍 Yeni crypt5 kodu yakalandı!")
-    try:
-        print("🔍 КОД НАЙДЕН В ТЕКСТЕ!", flush=True)
-    except:
-        pass
-
+    print("🔍 Обнаружен crypt5 код!")
     match = re.search(r'(happ://crypt5/[A-Za-z0-9+/=]+)', text)
     if not match:
+        print("❌ Не удалось извлечь ссылку регуляркой.")
         return
 
     happ_link = match.group(1)
     decrypted_url = decrypt_crypt5(happ_link)
 
     if not decrypted_url:
-        print("❌ ОШИБКА: Сервер дешифрации вернул пустой ответ!", flush=True)
+        print("❌ Дешифрация вернула пустой результат.")
         return
 
-    print(f"🔓 УСПЕШНО РАСШИФРОВАНО: {decrypted_url}", flush=True)
-
+    print(f"🔓 Успешная дешифрация!")
     encrypted_code = encrypt_happ_link(decrypted_url)
+    
     if not encrypted_code:
-        print("❌ ОШИБКА: Не удалось зашифровать в crypt4!", flush=True)
+        print("❌ Не удалось закодировать в crypt4.")
         return
 
     final_message = TEMPLATE.format(encrypted_code=encrypted_code, proxy=last_proxy)
-
+    
     for target in target_channels:
         try:
             await client.send_message(target, final_message)
-            print(f"✅ Gönderildi → {target}")
-            await client.send_message(LOG_CHANNEL, f"✅ {target} kanalına gönderildi")
+            print(f"✅ Gönderildi → {target}", flush=True)
         except Exception as e:
-            await client.send_message(LOG_CHANNEL, f"❌ Hata ({target}): {e}")
+            print(f"❌ Hata ({target}): {e}", flush=True)
 
-async def ping_render():
-    while True:
-        try:
-            requests.post("https://happ-decrypt-server-ogry.onrender.com/decrypt", json={"text": "ping_test"}, timeout=5)
-            print("🛰️ Пинг на Render успешно отправлен")
-        except:
-            pass
-        await asyncio.sleep(300)
 
-async def main():
-    await client.start()
-    print("🚀 Happ Mixer Userbot (crypt5→crypt4) ÇALIŞIYOR...")
-    asyncio.create_task(ping_render())
-    try:
-        await client.send_message(LOG_CHANNEL, "🚀 **Bot Başlatıldı - crypt5 Desteği Aktif**")
-    except:
-        pass
-    await client.run_until_disconnected()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())
