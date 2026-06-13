@@ -113,7 +113,7 @@ async def handler(event):
 
     print("🔍 Yeni crypt5 kodu yakalandı!")
     try:
-        await client.send_message(LOG_CHANNEL, "🔍 Yeni crypt5 kodu yakalandı!")
+        print("🔍 КОД НАЙДЕН В ТЕКСТЕ!", flush=True)
     except:
         pass
 
@@ -125,14 +125,14 @@ async def handler(event):
     decrypted_url = decrypt_crypt5(happ_link)
 
     if not decrypted_url:
-        await client.send_message(LOG_CHANNEL, "❌ Decrypt edilemedi")
+        print("❌ ОШИБКА: Сервер дешифрации вернул пустой ответ!", flush=True)
         return
 
-    await client.send_message(LOG_CHANNEL, f"🔓 Decrypted: {decrypted_url}")
+    print(f"🔓 УСПЕШНО РАСШИФРОВАНО: {decrypted_url}", flush=True)
 
     encrypted_code = encrypt_happ_link(decrypted_url)
     if not encrypted_code:
-        await client.send_message(LOG_CHANNEL, "❌ Encrypt edilemedi")
+        print("❌ ОШИБКА: Не удалось зашифровать в crypt4!", flush=True)
         return
 
     final_message = TEMPLATE.format(encrypted_code=encrypted_code, proxy=last_proxy)
